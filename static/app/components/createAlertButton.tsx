@@ -4,7 +4,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import Access from 'sentry/components/acl/access';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button, ButtonProps} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
@@ -191,26 +191,18 @@ function CreateAlertButton({
   );
 
   const showGuide = !organization.alertsMemberWrite && !!showPermissionGuide;
+  const canCreateAlert = hasEveryAccess(['alerts:write'], {organization});
+  const isOrgAdmin = hasEveryAccess(['org:admin'], {organization});
 
-  return (
-    <Access access={['alerts:write']}>
-      {({hasAccess}) =>
-        showGuide ? (
-          <Access access={['org:write']}>
-            {({hasAccess: isOrgAdmin}) => (
-              <GuideAnchor
-                target={isOrgAdmin ? 'alerts_write_owner' : 'alerts_write_member'}
-                onFinish={isOrgAdmin ? enableAlertsMemberWrite : undefined}
-              >
-                {renderButton(hasAccess)}
-              </GuideAnchor>
-            )}
-          </Access>
-        ) : (
-          renderButton(hasAccess)
-        )
-      }
-    </Access>
+  return showGuide ? (
+    <GuideAnchor
+      target={isOrgAdmin ? 'alerts_write_owner' : 'alerts_write_member'}
+      onFinish={isOrgAdmin ? enableAlertsMemberWrite : undefined}
+    >
+      {renderButton(canCreateAlert)}
+    </GuideAnchor>
+  ) : (
+    renderButton(canCreateAlert)
   );
 }
 
