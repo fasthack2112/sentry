@@ -1,10 +1,8 @@
 import logging
+import random
 from typing import Any, Callable, Dict, Optional
 
-from sentry.lang.javascript.utils import (
-    do_sourcemaps_processing_ab_test,
-    should_use_symbolicator_for_sourcemaps,
-)
+from sentry import options
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models import EventError, Project
@@ -214,7 +212,9 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     if not _handle_response_status(data, response):
         return data
 
-    should_do_ab_test = do_sourcemaps_processing_ab_test()
+    # TODO: Clean up A/B testing code once we're done with them,
+    # and mark option below as `# unused` in `src/sentry/options/defaults.py`.
+    should_do_ab_test = options.get("symbolicator.sourcemaps-processing-ab-test") > random.random()
     symbolicator_stacktraces = []
 
     processing_errors = response.get("errors", [])
@@ -266,6 +266,4 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
 
 def get_js_symbolication_function(data: Any) -> Optional[Callable[[Symbolicator, Any], Any]]:
-    if should_use_symbolicator_for_sourcemaps(data.get("project")):
-        return process_js_stacktraces
-    return None
+    return process_js_stacktraces

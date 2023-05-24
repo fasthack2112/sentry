@@ -31,9 +31,9 @@ from sentry.utils import json
 # This test suite requires Symbolicator in order to run correctly.
 # Set `symbolicator.enabled: true` in your `~/.sentry/config.yml` and run `sentry devservices up`
 #
-# If you are using a local instance of Symbolicator, you need to either change `system.url-prefix` to `system.internal-url-prefix`
-# inside `process_with_symbolicator` fixture inside `src/sentry/utils/pytest/fixtures.py`,
-# or add `127.0.0.1 host.docker.internal` entry to your `/etc/hosts`
+# If you are using a local instance of Symbolicator, you need to either change `system.url-prefix`
+# to `system.internal-url-prefix` inside `initialize` method below, or add `127.0.0.1 host.docker.internal`
+# entry to your `/etc/hosts`
 
 BASE64_SOURCEMAP = "data:application/json;base64," + (
     b64encode(
@@ -59,7 +59,9 @@ def load_fixture(name):
 @pytest.mark.django_db(transaction=True)
 class TestJavascriptIntegration(RelayStoreHelper):
     @pytest.fixture(autouse=True)
-    def initialize(self, default_projectkey, default_project):
+    def initialize(
+        self, default_projectkey, default_project, request, set_sentry_option, live_server
+    ):
         self.project = default_project
         self.projectkey = default_projectkey
         self.organization = self.project.organization
@@ -67,9 +69,13 @@ class TestJavascriptIntegration(RelayStoreHelper):
         # We disable scraping per-test when necessary.
         self.project.update_option("sentry:scrape_javascript", True)
 
+        with set_sentry_option("system.url-prefix", live_server.url):
+            # Run test case
+            yield request.param
+
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_adds_contexts_without_device(self, process_with_symbolicator):
+    def test_adds_contexts_without_device(self):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -93,7 +99,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_adds_contexts_with_device(self, process_with_symbolicator):
+    def test_adds_contexts_with_device(self):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -125,7 +131,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_adds_contexts_with_ps4_device(self, process_with_symbolicator):
+    def test_adds_contexts_with_ps4_device(self):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -355,7 +361,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_error_message_translations(self, process_with_symbolicator):
+    def test_error_message_translations(self):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -393,7 +399,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_sourcemap_source_expansion(self, process_with_symbolicator):
+    def test_sourcemap_source_expansion(self):
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="abc"
@@ -466,10 +472,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         expected = "\treturn a + b; // fôo"
         assert frame.context_line == expected
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
         raw_frame_list = exception.values[0].raw_stacktrace.frames
         raw_frame = raw_frame_list[0]
@@ -479,10 +482,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
             == 'function add(a,b){"use strict";return a+b}function multiply(a,b){"use strict";return a*b}function '
             'divide(a,b){"use strict";try{return multip {snip}'
         )
-        if process_with_symbolicator:
-            assert raw_frame.post_context == ["//@ sourceMappingURL=file.sourcemap.js"]
-        else:
-            assert raw_frame.post_context == ["//@ sourceMappingURL=file.sourcemap.js", ""]
+        assert raw_frame.post_context == ["//@ sourceMappingURL=file.sourcemap.js"]
         assert raw_frame.lineno == 1
 
         # Since we couldn't expand source for the 2nd frame, both
@@ -494,7 +494,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_sourcemap_webpack(self, process_with_symbolicator):
+    def test_sourcemap_webpack(self):
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="abc"
@@ -570,15 +570,12 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "    var data = {failed: true, value: 42};",
         ]
         assert first_frame.context_line == "    invoke(data);"
-        if process_with_symbolicator:
-            assert first_frame.post_context == [
-                "  }",
-                "",
-                "  return test;",
-                "})();",
-            ]
-        else:
-            assert first_frame.post_context == ["  }", "", "  return test;", "})();", ""]
+        assert first_frame.post_context == [
+            "  }",
+            "",
+            "  return test;",
+            "})();",
+        ]
 
         # The second frame should be identical to the first, except not in_app.
         second_frame = frame_list[1]
@@ -590,7 +587,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_sourcemap_source_expansion_ab_test(self, process_with_symbolicator):
+    def test_sourcemap_source_expansion_ab_test(self):
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="abc"
@@ -679,7 +676,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_sourcemap_embedded_source_expansion(self, process_with_symbolicator):
+    def test_sourcemap_embedded_source_expansion(self):
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="abc"
@@ -748,14 +745,11 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         expected = "\treturn a + b; // fôo"
         assert frame.context_line == expected
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_sourcemap_nofiles_source_expansion(self, process_with_symbolicator):
+    def test_sourcemap_nofiles_source_expansion(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -815,14 +809,11 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert frame.abs_path == "app:///nofiles.js"
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_indexed_sourcemap_source_expansion(self, process_with_symbolicator):
+    def test_indexed_sourcemap_source_expansion(self):
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="abc"
@@ -887,28 +878,17 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         expected = "\treturn a + b; // fôo"
         assert frame.context_line == expected
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
         raw_frame_list = exception.values[0].raw_stacktrace.frames
         raw_frame = raw_frame_list[0]
         assert not raw_frame.pre_context
         assert raw_frame.context_line == 'function add(a,b){"use strict";return a+b}'
-        if process_with_symbolicator:
-            assert raw_frame.post_context == [
-                'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply('
-                "add(a,b),a,b)/c}catch(e){Raven.captureE {snip}",
-                "//# sourceMappingURL=indexed.sourcemap.js",
-            ]
-        else:
-            assert raw_frame.post_context == [
-                'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply('
-                "add(a,b),a,b)/c}catch(e){Raven.captureE {snip}",
-                "//# sourceMappingURL=indexed.sourcemap.js",
-                "",
-            ]
+        assert raw_frame.post_context == [
+            'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply('
+            "add(a,b),a,b)/c}catch(e){Raven.captureE {snip}",
+            "//# sourceMappingURL=indexed.sourcemap.js",
+        ]
         assert raw_frame.lineno == 1
 
         frame = frame_list[1]
@@ -929,15 +909,12 @@ class TestJavascriptIntegration(RelayStoreHelper):
             == 'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply('
             "add(a,b),a,b)/c}catch(e){Raven.captureE {snip}"
         )
-        if process_with_symbolicator:
-            assert raw_frame.post_context == ["//# sourceMappingURL=indexed.sourcemap.js"]
-        else:
-            assert raw_frame.post_context == ["//# sourceMappingURL=indexed.sourcemap.js", ""]
+        assert raw_frame.post_context == ["//# sourceMappingURL=indexed.sourcemap.js"]
         assert raw_frame.lineno == 2
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_via_debug(self, process_with_symbolicator):
+    def test_expansion_via_debug(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -1067,10 +1044,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
         frame = frame_list[1]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
@@ -1085,7 +1059,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_via_distribution_release_artifacts(self, process_with_symbolicator):
+    def test_expansion_via_distribution_release_artifacts(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -1228,10 +1202,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
         frame = frame_list[1]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
@@ -1493,9 +1464,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
             {"url": "http://example.com/invalid_file2.js", "type": "js_invalid_content"},
         ]
 
-    def _test_expansion_via_release_archive(
-        self, link_sourcemaps: bool, process_with_symbolicator: bool
-    ):
+    def _test_expansion_via_release_archive(self, link_sourcemaps: bool):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -1581,10 +1550,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
         frame = frame_list[1]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
@@ -1599,21 +1565,17 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_via_release_archive(self, process_with_symbolicator):
-        self._test_expansion_via_release_archive(
-            link_sourcemaps=True, process_with_symbolicator=process_with_symbolicator
-        )
+    def test_expansion_via_release_archive(self):
+        self._test_expansion_via_release_archive(link_sourcemaps=True)
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_via_release_archive_no_sourcemap_link(self, process_with_symbolicator):
-        self._test_expansion_via_release_archive(
-            link_sourcemaps=False, process_with_symbolicator=process_with_symbolicator
-        )
+    def test_expansion_via_release_archive_no_sourcemap_link(self):
+        self._test_expansion_via_release_archive(link_sourcemaps=False)
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_node_processing(self, process_with_symbolicator):
+    def test_node_processing(self):
         project = self.project
         release = Release.objects.create(
             organization_id=project.organization_id, version="nodeabc123"
@@ -1895,7 +1857,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_debug_id(self, process_with_symbolicator):
+    def test_expansion_with_debug_id(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -2049,10 +2011,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
         frame = frame_list[1]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
@@ -2068,16 +2027,11 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame = frame_list[2]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_debug_id_and_sourcemap_without_sources_content(
-        self, process_with_symbolicator
-    ):
+    def test_expansion_with_debug_id_and_sourcemap_without_sources_content(self):
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 
         compressed = BytesIO(b"SYSB")
@@ -2204,42 +2158,30 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         event = self.post_and_retrieve_event(data)
 
-        # NOTE: Symbolicator processor has a better fallback to pull specific files for source context
-        if process_with_symbolicator:
-            assert "errors" not in event.data
+        assert "errors" not in event.data
 
-            exception = event.interfaces["exception"]
-            frame_list = exception.values[0].stacktrace.frames
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
 
-            frame = frame_list[0]
-            assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
-            assert frame.context_line == "\treturn a + b; // fôo"
-            if process_with_symbolicator:
-                assert frame.post_context == ["}"]
-            else:
-                assert frame.post_context == ["}", ""]
+        frame = frame_list[0]
+        assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+        assert frame.context_line == "\treturn a + b; // fôo"
+        assert frame.post_context == ["}"]
 
-            frame = frame_list[1]
-            assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
-            assert frame.context_line == "\treturn a * b;"
-            assert frame.post_context == [
-                "}",
-                "function divide(a, b) {",
-                '\t"use strict";',
-                "\ttry {",
-                "\t\treturn multiply(add(a, b), a, b) / c;",
-            ]
-        else:
-            assert len(event.data["errors"]) == 3
-            assert event.data["errors"][0] == {
-                "type": "js_missing_sources_content",
-                "source": "http://example.com/file.min.js",
-                "sourcemap": f"debug-id://{debug_id}/~/file.sourcemap.js",
-            }
+        frame = frame_list[1]
+        assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
+        assert frame.context_line == "\treturn a * b;"
+        assert frame.post_context == [
+            "}",
+            "function divide(a, b) {",
+            '\t"use strict";',
+            "\ttry {",
+            "\t\treturn multiply(add(a, b), a, b) / c;",
+        ]
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_debug_id_and_malformed_sourcemap(self, process_with_symbolicator):
+    def test_expansion_with_debug_id_and_malformed_sourcemap(self):
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 
         compressed = BytesIO(b"SYSB")
@@ -2370,21 +2312,14 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         assert len(event.data["errors"]) == 1
 
-        # NOTE: Its not obvious what data we want here yet.
-        if process_with_symbolicator:
-            assert event.data["errors"][0] == {
-                "type": "js_invalid_source",
-                "url": "http://example.com/file.malformed.sourcemap.js",
-            }
-        else:
-            assert event.data["errors"][0] == {
-                "type": "js_invalid_source",
-                "debug_id": f"debug-id://{debug_id}/~/file.malformed.sourcemap.js",
-            }
+        assert event.data["errors"][0] == {
+            "type": "js_invalid_source",
+            "url": "http://example.com/file.malformed.sourcemap.js",
+        }
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_debug_id_not_found(self, process_with_symbolicator):
+    def test_expansion_with_debug_id_not_found(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -2484,10 +2419,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
         frame = frame_list[1]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
@@ -2503,14 +2435,11 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame = frame_list[2]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_release_dist_pair_x(self, process_with_symbolicator):
+    def test_expansion_with_release_dist_pair_x(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -2645,10 +2574,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
         frame = frame_list[1]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
@@ -2664,16 +2590,11 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame = frame_list[2]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_release_dist_pair_and_sourcemap_without_sources_content(
-        self, process_with_symbolicator
-    ):
+    def test_expansion_with_release_dist_pair_and_sourcemap_without_sources_content(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -2787,42 +2708,30 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         event = self.post_and_retrieve_event(data)
 
-        # NOTE: Symbolicator processor has a better fallback to pull specific files for source context
-        if process_with_symbolicator:
-            assert "errors" not in event.data
+        assert "errors" not in event.data
 
-            exception = event.interfaces["exception"]
-            frame_list = exception.values[0].stacktrace.frames
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
 
-            frame = frame_list[0]
-            assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
-            assert frame.context_line == "\treturn a + b; // fôo"
-            if process_with_symbolicator:
-                assert frame.post_context == ["}"]
-            else:
-                assert frame.post_context == ["}", ""]
+        frame = frame_list[0]
+        assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+        assert frame.context_line == "\treturn a + b; // fôo"
+        assert frame.post_context == ["}"]
 
-            frame = frame_list[1]
-            assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
-            assert frame.context_line == "\treturn a * b;"
-            assert frame.post_context == [
-                "}",
-                "function divide(a, b) {",
-                '\t"use strict";',
-                "\ttry {",
-                "\t\treturn multiply(add(a, b), a, b) / c;",
-            ]
-        else:
-            assert len(event.data["errors"]) == 3
-            assert event.data["errors"][0] == {
-                "type": "js_missing_sources_content",
-                "source": "http://example.com/file.min.js",
-                "sourcemap": "http://example.com/file.sourcemap.js",
-            }
+        frame = frame_list[1]
+        assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
+        assert frame.context_line == "\treturn a * b;"
+        assert frame.post_context == [
+            "}",
+            "function divide(a, b) {",
+            '\t"use strict";',
+            "\ttry {",
+            "\t\treturn multiply(add(a, b), a, b) / c;",
+        ]
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_release_and_malformed_sourcemap(self, process_with_symbolicator):
+    def test_expansion_with_release_and_malformed_sourcemap(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
