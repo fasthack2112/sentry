@@ -38,7 +38,7 @@ class TestExample(RelayStoreHelper):
 
         with set_sentry_option("system.url-prefix", live_server.url):
             # Run test case
-            yield request.param
+            yield
 
     @requires_symbolicator
     @pytest.mark.symbolicator
