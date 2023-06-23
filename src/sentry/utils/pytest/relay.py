@@ -20,6 +20,7 @@ _log = logging.getLogger(__name__)
 
 # This helps the Relay CI to specify the generated Docker build before it is published
 RELAY_TEST_IMAGE = environ.get("RELAY_TEST_IMAGE", "us.gcr.io/sentryio/relay:nightly")
+BUSTED_DOCKER = "ERROR r2d2: failed to lookup address information: Name or service not known"
 
 
 def _relay_server_container_name():
@@ -150,7 +151,14 @@ def relay_server(relay_server_setup, settings):
             break
         except Exception as ex:
             if i == 4:
-                raise ValueError(f"relay did not start in time:\n{container.logs()}") from ex
+                container_logs = container.logs()
+                error_msg = ""
+                if container_logs.decode().find(BUSTED_DOCKER) > -1:
+                    error_msg = "Your Docker network is busted. Check https://develop.sentry.dev/environment/ for help."
+                else:
+                    error_msg = "relay did not start in time:"
+
+                raise ValueError(f"{error_msg}\n{container_logs}") from ex
             time.sleep(0.1 * 2**i)
     else:
         raise ValueError("relay did not start in time")
