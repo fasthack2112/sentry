@@ -528,7 +528,7 @@ export type ResolutionStatusDetails = {
 export type GroupStatusResolution = {
   status: ResolutionStatus;
   statusDetails: ResolutionStatusDetails;
-  substatus?: GroupSubstatus;
+  substatus: GroupSubstatus;
 };
 
 // TODO(ts): incomplete
