@@ -15,10 +15,12 @@ export enum TabKey {
   MEMORY = 'memory',
   NETWORK = 'network',
   TRACE = 'trace',
+  TRACE_TABLE = 'trace_table',
 }
 
 function isReplayTab(tab: string, organization: Organization): tab is TabKey {
   const hasErrorTab = organization.features.includes('session-replay-errors-tab');
+  const hasTraceTable = organization.features.includes('session-replay-trace-table');
   if (tab === TabKey.ERRORS) {
     // If the errors tab feature is enabled, then TabKey.ERRORS is valid.
     return hasErrorTab;
@@ -26,6 +28,15 @@ function isReplayTab(tab: string, organization: Organization): tab is TabKey {
   if (tab === TabKey.ISSUES) {
     // If the errors tab is enabled, then then Issues tab is invalid
     return !hasErrorTab;
+  }
+
+  if (tab === TabKey.TRACE_TABLE) {
+    // If trace-table is enabled, then the TabKey.TRACE_TABLE key is valid
+    return hasTraceTable;
+  }
+  if (tab === TabKey.TRACE) {
+    // if the trace table feature is enabled, then the old TRACE key is invalid
+    return !hasTraceTable;
   }
   return Object.values<string>(TabKey).includes(tab);
 }

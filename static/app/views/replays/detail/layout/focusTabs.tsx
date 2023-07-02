@@ -13,6 +13,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
   const hasErrorTab = organization.features.includes('session-replay-errors-tab');
+  const hasTraceTable = organization.features.includes('session-replay-trace-table');
 
   const networkLabel = !hasErrorTab ? (
     <Fragment>
@@ -37,7 +38,12 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
     [TabKey.ERRORS]: hasErrorTab ? errorLabel : null,
     [TabKey.ISSUES]: hasErrorTab ? null : t('Issues'),
     [TabKey.MEMORY]: t('Memory'),
-    [TabKey.TRACE]: t('Trace'),
+    [TabKey.TRACE]: hasTraceTable ? null : t('Trace'),
+    [TabKey.TRACE_TABLE]: hasTraceTable ? (
+      <Fragment>
+        {t('Trace')} <FeatureBadge type="new" />
+      </Fragment>
+    ) : null,
   };
 }
 
