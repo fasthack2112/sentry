@@ -1126,17 +1126,16 @@ class EventsSnubaSearchTest(SharedSnubaTest):
                 user_id=self.user.id, group=my_team_group
             ).exists()
 
-        with self.feature("organizations:assign-to-me"):
-            self.run_test_query(
-                "assigned:me",
-                [self.group2],
-                user=self.user,
-            )
-            self.run_test_query(
-                "assigned:my_teams",
-                [my_team_group],
-                user=self.user,
-            )
+        self.run_test_query(
+            "assigned:me",
+            [self.group2],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned:my_teams",
+            [my_team_group],
+            user=self.user,
+        )
 
     def test_assigned_to_me_my_teams_in_syntax(self):
         my_team_group = self.store_event(
@@ -1170,22 +1169,21 @@ class EventsSnubaSearchTest(SharedSnubaTest):
                 user_id=self.user.id, group=my_team_group
             ).exists()
 
-        with self.feature("organizations:assign-to-me"):
-            self.run_test_query(
-                "assigned:[me]",
-                [self.group2],
-                user=self.user,
-            )
-            self.run_test_query(
-                "assigned:[my_teams]",
-                [my_team_group],
-                user=self.user,
-            )
-            self.run_test_query(
-                "assigned:[me, my_teams]",
-                [self.group2, my_team_group],
-                user=self.user,
-            )
+        self.run_test_query(
+            "assigned:[me]",
+            [self.group2],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned:[my_teams]",
+            [my_team_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned:[me, my_teams]",
+            [self.group2, my_team_group],
+            user=self.user,
+        )
 
     def test_assigned_to_in_syntax(self):
         group_3 = self.store_event(
@@ -1435,20 +1433,18 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         ).group
 
-        # after the change to me -> (me + my_teams)
-        with self.feature("organizations:assign-to-me"):
-            self.run_test_query(
-                "assigned_or_suggested:me",
-                [],
-                [group, group1, group2, assigned_group, assigned_to_other_group, my_team_group],
-                user=self.user,
-            )
-            self.run_test_query(
-                "assigned_or_suggested:my_teams",
-                [],
-                [group, group1, group2, assigned_group, assigned_to_other_group, my_team_group],
-                user=self.user,
-            )
+        self.run_test_query(
+            "assigned_or_suggested:me",
+            [],
+            [group, group1, group2, assigned_group, assigned_to_other_group, my_team_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:my_teams",
+            [],
+            [group, group1, group2, assigned_group, assigned_to_other_group, my_team_group],
+            user=self.user,
+        )
 
         GroupOwner.objects.create(
             group=assigned_to_other_group,
@@ -1470,20 +1466,18 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             user_id=None, team_id=self.team.id, group=my_team_group, project=my_team_group.project
         )
 
-        # after the change to me -> (me + my_teams)
-        with self.feature("organizations:assign-to-me"):
-            self.run_test_query(
-                "assigned_or_suggested:me",
-                [group, assigned_to_other_group],
-                [group1, group2, assigned_group, my_team_group],
-                user=self.user,
-            )
-            self.run_test_query(
-                "assigned_or_suggested:my_teams",
-                [my_team_group],
-                [group, group1, group2, assigned_group, assigned_to_other_group],
-                user=self.user,
-            )
+        self.run_test_query(
+            "assigned_or_suggested:me",
+            [group, assigned_to_other_group],
+            [group1, group2, assigned_group, my_team_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:my_teams",
+            [my_team_group],
+            [group, group1, group2, assigned_group, assigned_to_other_group],
+            user=self.user,
+        )
 
         # Because assigned_to_other_event is assigned to self.other_user, it should not show up in assigned_or_suggested search for anyone but self.other_user. (aka. they are now the only owner)
         other_user = self.create_user("other@user.com", is_superuser=False)
@@ -1493,39 +1487,35 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             user_id=other_user.id,
         )
 
-        # after the change to me -> (me + my_teams)
-        with self.feature("organizations:assign-to-me"):
-            self.run_test_query(
-                "assigned_or_suggested:me",
-                [group],
-                [group1, group2, assigned_group, my_team_group, assigned_to_other_group],
-                user=self.user,
-            )
-            self.run_test_query(
-                "assigned_or_suggested:my_teams",
-                [my_team_group],
-                [group, group1, group2, assigned_group, assigned_to_other_group],
-                user=self.user,
-            )
-            self.run_test_query(
-                f"assigned_or_suggested:{other_user.email}",
-                [assigned_to_other_group],
-                [group, group1, group2, assigned_group, my_team_group],
-                user=self.user,
-            )
+        self.run_test_query(
+            "assigned_or_suggested:me",
+            [group],
+            [group1, group2, assigned_group, my_team_group, assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:my_teams",
+            [my_team_group],
+            [group, group1, group2, assigned_group, assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            f"assigned_or_suggested:{other_user.email}",
+            [assigned_to_other_group],
+            [group, group1, group2, assigned_group, my_team_group],
+            user=self.user,
+        )
 
         GroupAssignee.objects.create(
             group=assigned_group, project=self.project, user_id=self.user.id
         )
 
-        # after the change to me -> (me + my_teams)
-        with self.feature("organizations:assign-to-me"):
-            self.run_test_query(
-                f"assigned_or_suggested:{self.user.email}",
-                [assigned_group, group],
-                [group1, group2, my_team_group, assigned_to_other_group],
-                user=self.user,
-            )
+        self.run_test_query(
+            f"assigned_or_suggested:{self.user.email}",
+            [assigned_group, group],
+            [group1, group2, my_team_group, assigned_to_other_group],
+            user=self.user,
+        )
 
         GroupOwner.objects.create(
             group=group,
@@ -1536,14 +1526,12 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             user_id=None,
         )
 
-        # after the change to me -> (me + my_teams)
-        with self.feature("organizations:assign-to-me"):
-            self.run_test_query(
-                f"assigned_or_suggested:#{self.team.slug}",
-                [group, my_team_group],
-                [group1, group2, assigned_group, assigned_to_other_group],
-                user=self.user,
-            )
+        self.run_test_query(
+            f"assigned_or_suggested:#{self.team.slug}",
+            [group, my_team_group],
+            [group1, group2, assigned_group, assigned_to_other_group],
+            user=self.user,
+        )
 
     def test_assigned_or_suggested_my_teams_in_syntax(self):
         Group.objects.all().delete()
@@ -1599,26 +1587,24 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         ).group
 
-        # after the change to me -> (me + my_teams)
-        with self.feature("organizations:assign-to-me"):
-            self.run_test_query(
-                "assigned_or_suggested:[me]",
-                [],
-                [group, group1, group2, assigned_group, assigned_to_other_group, my_team_group],
-                user=self.user,
-            )
-            self.run_test_query(
-                "assigned_or_suggested:[my_teams]",
-                [],
-                [group, group1, group2, assigned_group, assigned_to_other_group, my_team_group],
-                user=self.user,
-            )
-            self.run_test_query(
-                "assigned_or_suggested:[me, my_teams]",
-                [],
-                [group, group1, group2, assigned_group, assigned_to_other_group, my_team_group],
-                user=self.user,
-            )
+        self.run_test_query(
+            "assigned_or_suggested:[me]",
+            [],
+            [group, group1, group2, assigned_group, assigned_to_other_group, my_team_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[my_teams]",
+            [],
+            [group, group1, group2, assigned_group, assigned_to_other_group, my_team_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[me, my_teams]",
+            [],
+            [group, group1, group2, assigned_group, assigned_to_other_group, my_team_group],
+            user=self.user,
+        )
 
         GroupOwner.objects.create(
             group=assigned_to_other_group,
@@ -1640,26 +1626,24 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             user_id=None, team_id=self.team.id, group=my_team_group, project=my_team_group.project
         )
 
-        # after the change to me -> (me + my_teams)
-        with self.feature("organizations:assign-to-me"):
-            self.run_test_query(
-                "assigned_or_suggested:[me]",
-                [group, assigned_to_other_group],
-                [group1, group2, assigned_group, my_team_group],
-                user=self.user,
-            )
-            self.run_test_query(
-                "assigned_or_suggested:[my_teams]",
-                [my_team_group],
-                [group, group1, group2, assigned_group, assigned_to_other_group],
-                user=self.user,
-            )
-            self.run_test_query(
-                "assigned_or_suggested:[me, my_teams]",
-                [group, assigned_to_other_group, my_team_group],
-                [group1, group2, assigned_group],
-                user=self.user,
-            )
+        self.run_test_query(
+            "assigned_or_suggested:[me]",
+            [group, assigned_to_other_group],
+            [group1, group2, assigned_group, my_team_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[my_teams]",
+            [my_team_group],
+            [group, group1, group2, assigned_group, assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[me, my_teams]",
+            [group, assigned_to_other_group, my_team_group],
+            [group1, group2, assigned_group],
+            user=self.user,
+        )
 
         # Because assigned_to_other_event is assigned to self.other_user, it should not show up in assigned_or_suggested search for anyone but self.other_user. (aka. they are now the only owner)
         other_user = self.create_user("other@user.com", is_superuser=False)
@@ -1669,45 +1653,41 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             user_id=other_user.id,
         )
 
-        # after the change to me -> (me + my_teams)
-        with self.feature("organizations:assign-to-me"):
-            self.run_test_query(
-                "assigned_or_suggested:[me]",
-                [group],
-                [group1, group2, assigned_group, my_team_group, assigned_to_other_group],
-                user=self.user,
-            )
-            self.run_test_query(
-                "assigned_or_suggested:[my_teams]",
-                [my_team_group],
-                [group, group1, group2, assigned_group, assigned_to_other_group],
-                user=self.user,
-            )
-            self.run_test_query(
-                "assigned_or_suggested:[me, my_teams]",
-                [group, my_team_group],
-                [group1, group2, assigned_group, assigned_to_other_group],
-                user=self.user,
-            )
-            self.run_test_query(
-                f"assigned_or_suggested:[{other_user.email}]",
-                [assigned_to_other_group],
-                [group, group1, group2, assigned_group, my_team_group],
-                user=self.user,
-            )
+        self.run_test_query(
+            "assigned_or_suggested:[me]",
+            [group],
+            [group1, group2, assigned_group, my_team_group, assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[my_teams]",
+            [my_team_group],
+            [group, group1, group2, assigned_group, assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[me, my_teams]",
+            [group, my_team_group],
+            [group1, group2, assigned_group, assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            f"assigned_or_suggested:[{other_user.email}]",
+            [assigned_to_other_group],
+            [group, group1, group2, assigned_group, my_team_group],
+            user=self.user,
+        )
 
         GroupAssignee.objects.create(
             group=assigned_group, project=self.project, user_id=self.user.id
         )
 
-        # after the change to me -> (me + my_teams)
-        with self.feature("organizations:assign-to-me"):
-            self.run_test_query(
-                f"assigned_or_suggested:[{self.user.email}]",
-                [assigned_group, group],
-                [group1, group2, my_team_group, assigned_to_other_group],
-                user=self.user,
-            )
+        self.run_test_query(
+            f"assigned_or_suggested:[{self.user.email}]",
+            [assigned_group, group],
+            [group1, group2, my_team_group, assigned_to_other_group],
+            user=self.user,
+        )
 
         GroupOwner.objects.create(
             group=group,
@@ -1718,32 +1698,30 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             user_id=None,
         )
 
-        # after the change to me -> (me + my_teams)
-        with self.feature("organizations:assign-to-me"):
-            self.run_test_query(
-                f"assigned_or_suggested:[#{self.team.slug}]",
-                [group, my_team_group],
-                [group1, group2, assigned_group, assigned_to_other_group],
-                user=self.user,
-            )
-            self.run_test_query(
-                "assigned_or_suggested:[me, none]",
-                [group, group1, group2, assigned_group],
-                [my_team_group, assigned_to_other_group],
-                user=self.user,
-            )
-            self.run_test_query(
-                "assigned_or_suggested:[my_teams, none]",
-                [group, group1, group2, my_team_group],
-                [assigned_to_other_group, assigned_group],
-                user=self.user,
-            )
-            self.run_test_query(
-                "assigned_or_suggested:[me, my_teams, none]",
-                [group, group1, group2, my_team_group, assigned_group],
-                [assigned_to_other_group],
-                user=self.user,
-            )
+        self.run_test_query(
+            f"assigned_or_suggested:[#{self.team.slug}]",
+            [group, my_team_group],
+            [group1, group2, assigned_group, assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[me, none]",
+            [group, group1, group2, assigned_group],
+            [my_team_group, assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[my_teams, none]",
+            [group, group1, group2, my_team_group],
+            [assigned_to_other_group, assigned_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[me, my_teams, none]",
+            [group, group1, group2, my_team_group, assigned_group],
+            [assigned_to_other_group],
+            user=self.user,
+        )
 
         not_me = self.create_user(email="notme@sentry.io")
         GroupOwner.objects.create(
@@ -1755,67 +1733,63 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             user_id=not_me.id,
         )
 
-        # after the change to me -> (me + my_teams)
-        with self.feature("organizations:assign-to-me"):
-            self.run_test_query(
-                "assigned_or_suggested:[me, none]",
-                [group, group1, assigned_group],
-                [group2, my_team_group, assigned_to_other_group],
-                user=self.user,
-            )
-            self.run_test_query(
-                "assigned_or_suggested:[my_teams, none]",
-                [group, group1, my_team_group],
-                [group2, assigned_group, assigned_to_other_group],
-                user=self.user,
-            )
-            self.run_test_query(
-                "assigned_or_suggested:[me, my_teams, none]",
-                [group, group1, my_team_group, assigned_group],
-                [group2, assigned_to_other_group],
-                user=self.user,
-            )
+        self.run_test_query(
+            "assigned_or_suggested:[me, none]",
+            [group, group1, assigned_group],
+            [group2, my_team_group, assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[my_teams, none]",
+            [group, group1, my_team_group],
+            [group2, assigned_group, assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[me, my_teams, none]",
+            [group, group1, my_team_group, assigned_group],
+            [group2, assigned_to_other_group],
+            user=self.user,
+        )
 
         GroupOwner.objects.filter(group=group, user_id=self.user.id).delete()
 
-        # after the change to me -> (me + my_teams)
-        with self.feature("organizations:assign-to-me"):
-            self.run_test_query(
-                f"assigned_or_suggested:[me, none, #{self.team.slug}]",
-                [group, group1, assigned_group, my_team_group],
-                [assigned_to_other_group, group2],
-                user=self.user,
-            )
-            self.run_test_query(
-                f"assigned_or_suggested:[my_teams, none, #{self.team.slug}]",
-                [group, group1, my_team_group],
-                [assigned_to_other_group, group2, assigned_group],
-                user=self.user,
-            )
-            self.run_test_query(
-                f"assigned_or_suggested:[me, my_teams, none, #{self.team.slug}]",
-                [group, group1, my_team_group, assigned_group],
-                [assigned_to_other_group, group2],
-                user=self.user,
-            )
-            self.run_test_query(
-                f"assigned_or_suggested:[me, none, #{self.team.slug}, {not_me.email}]",
-                [group, group1, group2, assigned_group, my_team_group],
-                [assigned_to_other_group],
-                user=self.user,
-            )
-            self.run_test_query(
-                f"assigned_or_suggested:[my_teams, none, #{self.team.slug}, {not_me.email}]",
-                [group, group1, group2, my_team_group],
-                [assigned_to_other_group, assigned_group],
-                user=self.user,
-            )
-            self.run_test_query(
-                f"assigned_or_suggested:[me, my_teams, none, #{self.team.slug}, {not_me.email}]",
-                [group, group1, group2, my_team_group, assigned_group],
-                [assigned_to_other_group],
-                user=self.user,
-            )
+        self.run_test_query(
+            f"assigned_or_suggested:[me, none, #{self.team.slug}]",
+            [group, group1, assigned_group, my_team_group],
+            [assigned_to_other_group, group2],
+            user=self.user,
+        )
+        self.run_test_query(
+            f"assigned_or_suggested:[my_teams, none, #{self.team.slug}]",
+            [group, group1, my_team_group],
+            [assigned_to_other_group, group2, assigned_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            f"assigned_or_suggested:[me, my_teams, none, #{self.team.slug}]",
+            [group, group1, my_team_group, assigned_group],
+            [assigned_to_other_group, group2],
+            user=self.user,
+        )
+        self.run_test_query(
+            f"assigned_or_suggested:[me, none, #{self.team.slug}, {not_me.email}]",
+            [group, group1, group2, assigned_group, my_team_group],
+            [assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            f"assigned_or_suggested:[my_teams, none, #{self.team.slug}, {not_me.email}]",
+            [group, group1, group2, my_team_group],
+            [assigned_to_other_group, assigned_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            f"assigned_or_suggested:[me, my_teams, none, #{self.team.slug}, {not_me.email}]",
+            [group, group1, group2, my_team_group, assigned_group],
+            [assigned_to_other_group],
+            user=self.user,
+        )
 
     def test_assigned_to_with_environment(self):
         results = self.make_query(
