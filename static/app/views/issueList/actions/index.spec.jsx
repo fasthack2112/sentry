@@ -232,6 +232,7 @@ describe('IssueListActions', function () {
                 ignoreUserCount: 300,
                 ignoreUserWindow: 10080,
               },
+              substatus: 'archived_until_condition_met',
             },
           })
         );
