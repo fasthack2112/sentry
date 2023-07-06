@@ -260,10 +260,6 @@ class OrganizationMember(Model):
             self.user_id and self.email is None
         ), "Must set either user or email"
 
-        assert self.organization.get_members_with_org_roles(
-            roles=[roles.get_top_dog().id]
-        ).exists(), "An organization must have at least one owner"
-
         with outbox_context(transaction.atomic()):
             if self.token and not self.token_expires_at:
                 self.refresh_expires_at()
