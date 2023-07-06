@@ -260,7 +260,6 @@ class OrganizationMember(Model):
             self.user_id and self.email is None
         ), "Must set either user or email"
 
-        # must have at least 1 owner in the org
         assert self.organization.get_members_with_org_roles(
             roles=[roles.get_top_dog().id]
         ).exists(), "An organization must have at least one owner"
