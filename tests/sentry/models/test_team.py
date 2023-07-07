@@ -78,7 +78,7 @@ class TeamTest(TestCase):
         org = self.create_organization()
 
         with pytest.raises(AssertionError):
-            team = self.create_team(self.organization, org_role="owner")
+            team = self.create_team(org, org_role="owner")
             self.create_member(
                 organization=org, role="member", user=self.create_user(), teams=[team]
             )
@@ -226,7 +226,7 @@ class TeamDeletionTest(TestCase):
         org = self.create_organization()
 
         with pytest.raises(AssertionError):
-            team = self.create_team(self.organization, org_role="owner")
+            team = self.create_team(org, org_role="owner")
             self.create_member(
                 organization=org, role="member", user=self.create_user(), teams=[team]
             )
