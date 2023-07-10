@@ -119,7 +119,7 @@ export function OverviewTimeline({monitorList}: Props) {
           <MonitorDetails monitor={monitor} />
           <MonitorEnvContainer>
             {generateVisibleEnvironmentSets(monitor).map(({label}) => (
-              <div key={label}>{label}</div>
+              <MonitorEnvLabel key={label}>{label}</MonitorEnvLabel>
             ))}
           </MonitorEnvContainer>
           {isLoading || !monitorStats ? (
@@ -229,6 +229,12 @@ const MonitorEnvContainer = styled('div')`
   border-right: 1px solid ${p => p.theme.innerBorder};
   text-align: right;
   line-height: 14px;
+`;
+
+const MonitorEnvLabel = styled('div')`
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 `;
 
 const TimelineContainer = styled('div')`
