@@ -2,8 +2,8 @@ import {
   JobTickData,
   MonitorBucketData,
 } from 'sentry/views/monitors/components/overviewTimeline/types';
-import {filterMonitorStatsBucketByEnvs} from 'sentry/views/monitors/utils/filterMonitorStatsBucketByEnvs';
 
+import {filterMonitorStatsBucketByEnvs} from './filterMonitorStatsBucketByEnvs';
 import {getAggregateStatus} from './getAggregateStatus';
 import {getAggregateStatusFromMultipleBuckets} from './getAggregateStatusFromMultipleBuckets';
 import {isEnvMappingEmpty} from './isEnvMappingEmpty';
