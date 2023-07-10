@@ -27,6 +27,26 @@ interface Props {
   monitorList: Monitor[];
 }
 
+const MAX_SHOWN_ENVIRONMENTS = 4;
+
+export function generateVisibleEnvironmentSets(monitor: Monitor) {
+  const envs = monitor.environments.map(({name}) => name);
+
+  if (envs.length < MAX_SHOWN_ENVIRONMENTS) {
+    return envs.map(env => ({label: env, environments: new Set([env])}));
+  }
+
+  // Get the first three environments as separate sets, and then combine the remaining environments
+  const environmentSets = envs
+    .slice(0, MAX_SHOWN_ENVIRONMENTS - 1)
+    .map(env => ({label: env, environments: new Set([env])}));
+  environmentSets.push({
+    label: '\u2026',
+    environments: new Set(envs.slice(MAX_SHOWN_ENVIRONMENTS - 1)),
+  });
+  return environmentSets;
+}
+
 export function OverviewTimeline({monitorList}: Props) {
   const {replace, location} = useRouter();
   const organization = useOrganization();
@@ -97,18 +117,29 @@ export function OverviewTimeline({monitorList}: Props) {
       {monitorList.map(monitor => (
         <Fragment key={monitor.id}>
           <MonitorDetails monitor={monitor} />
+          <MonitorEnvContainer>
+            {generateVisibleEnvironmentSets(monitor).map(({label}) => (
+              <div key={label}>{label}</div>
+            ))}
+          </MonitorEnvContainer>
           {isLoading || !monitorStats ? (
             <Placeholder />
           ) : (
-            <div>
-              <CheckInTimeline
-                timeWindow={timeWindow}
-                bucketedData={monitorStats[monitor.slug]}
-                end={nowRef.current}
-                start={start}
-                width={timelineWidth}
-              />
-            </div>
+            <TimelineContainer>
+              {generateVisibleEnvironmentSets(monitor).map(({label, environments}) => {
+                return (
+                  <CheckInTimeline
+                    key={label}
+                    timeWindow={timeWindow}
+                    bucketedData={monitorStats[monitor.slug]}
+                    end={nowRef.current}
+                    start={start}
+                    width={timelineWidth}
+                    environments={environments}
+                  />
+                );
+              })}
+            </TimelineContainer>
           )}
         </Fragment>
       ))}
@@ -132,17 +163,26 @@ function MonitorDetails({monitor}: {monitor: Monitor}) {
 
 const MonitorListPanel = styled(Panel)`
   display: grid;
-  grid-template-columns: 350px 1fr;
+  grid-template-columns: 350px 100px 1fr;
 
   a,
-  a + div {
+  a + div,
+  a + div + div {
     transition: background 50ms ease-in-out;
   }
 
+  /* Highlights row when hovering <a> */
   a:hover,
   a:hover + div,
+  a:hover + div + div,
+  /* Highlights row when hovering env <div> */
   a:has(+ div:hover),
-  a + div:hover {
+  a + div:hover,
+  a + div:hover + div,
+  /* Highlights row when hovering timeline <div> */
+  a:has(+ div + div:hover),
+  a + div:has(+ div:hover),
+  a + div + div:hover {
     background: ${p => p.theme.backgroundSecondary};
   }
 `;
@@ -151,6 +191,7 @@ const DetailsContainer = styled(Link)`
   color: ${p => p.theme.textColor};
   padding: ${space(2)};
   border-right: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.border};
   border-radius: 0;
 `;
 
@@ -169,11 +210,31 @@ const ListFilters = styled('div')`
   gap: ${space(1)};
   padding: ${space(1.5)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
+  grid-column: 1/3;
 `;
 
 const TimelineWidthTracker = styled('div')`
   position: absolute;
   width: 100%;
   grid-row: 1;
-  grid-column: 2;
+  grid-column: 3;
+`;
+
+const MonitorEnvContainer = styled('div')`
+  display: flex;
+  padding: ${space(2)};
+  flex-direction: column;
+  gap: ${space(4)};
+  border-bottom: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.innerBorder};
+  text-align: right;
+  line-height: 14px;
+`;
+
+const TimelineContainer = styled('div')`
+  border-bottom: 1px solid ${p => p.theme.border};
+  display: flex;
+  padding: ${space(2)} 0;
+  flex-direction: column;
+  gap: ${space(4)};
 `;

@@ -2,6 +2,7 @@ import {
   JobTickData,
   MonitorBucketData,
 } from 'sentry/views/monitors/components/overviewTimeline/types';
+import {filterMonitorStatsBucketByEnvs} from 'sentry/views/monitors/utils/filterMonitorStatsBucketByEnvs';
 
 import {getAggregateStatus} from './getAggregateStatus';
 import {getAggregateStatusFromMultipleBuckets} from './getAggregateStatusFromMultipleBuckets';
@@ -24,17 +25,19 @@ function generateJobTickFromBucket(
   };
 }
 
-export function mergeBuckets(data: MonitorBucketData) {
+export function mergeBuckets(data: MonitorBucketData, environments: Set<string>) {
   const minTickWidth = 4;
 
   const jobTicks: JobTickData[] = [];
   data.reduce((currentJobTick, bucket, i) => {
-    const [timestamp, envMapping] = bucket;
+    const filteredBucket = filterMonitorStatsBucketByEnvs(bucket, environments);
+
+    const [timestamp, envMapping] = filteredBucket;
     const envMappingEmpty = isEnvMappingEmpty(envMapping);
     if (!currentJobTick) {
       return envMappingEmpty
         ? currentJobTick
-        : generateJobTickFromBucket(bucket, {roundedLeft: true});
+        : generateJobTickFromBucket(filteredBucket, {roundedLeft: true});
     }
     const bucketStatus = getAggregateStatus(envMapping);
     const currJobTickStatus = getAggregateStatus(currentJobTick.envMapping);
@@ -58,7 +61,7 @@ export function mergeBuckets(data: MonitorBucketData) {
     ) {
       // Then add our current tick to the running list of job ticks to render
       jobTicks.push(currentJobTick);
-      return generateJobTickFromBucket(bucket);
+      return generateJobTickFromBucket(filteredBucket);
     }
 
     // Merge our current tick with the current bucket data

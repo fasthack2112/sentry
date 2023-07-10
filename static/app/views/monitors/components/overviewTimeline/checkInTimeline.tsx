@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import {CheckInStatus} from 'sentry/views/monitors/types';
 import {getColorsFromStatus} from 'sentry/views/monitors/utils';
 import {getAggregateStatus} from 'sentry/views/monitors/utils/getAggregateStatus';
@@ -12,6 +11,7 @@ import {MonitorBucketData, TimeWindow} from './types';
 interface Props {
   bucketedData: MonitorBucketData;
   end: Date;
+  environments: Set<string>;
   start: Date;
   timeWindow: TimeWindow;
   width: number;
@@ -27,12 +27,12 @@ function getBucketedCheckInsPosition(
 }
 
 export function CheckInTimeline(props: Props) {
-  const {bucketedData, start, end, timeWindow, width} = props;
+  const {bucketedData, start, end, timeWindow, width, environments} = props;
 
   const elapsedMs = end.getTime() - start.getTime();
   const msPerPixel = elapsedMs / width;
 
-  const jobTicks = mergeBuckets(bucketedData);
+  const jobTicks = mergeBuckets(bucketedData, environments);
 
   return (
     <TimelineContainer>
@@ -70,7 +70,6 @@ export function CheckInTimeline(props: Props) {
 const TimelineContainer = styled('div')`
   position: relative;
   height: 14px;
-  margin: ${space(2)} 0;
 `;
 
 const JobTick = styled('div')<{
