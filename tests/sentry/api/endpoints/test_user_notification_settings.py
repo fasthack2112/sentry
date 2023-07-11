@@ -205,7 +205,7 @@ class UserNotificationSettingsGetTestV2(UserNotificationSettingsTestBase):
         assert other_project.id not in response.data["preferences"]["workflow"]["project"]
 
 
-@control_silo_test()
+@control_silo_test(stable=True)
 class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
     method = "put"
 
