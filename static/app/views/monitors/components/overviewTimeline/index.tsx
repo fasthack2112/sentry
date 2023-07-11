@@ -171,6 +171,12 @@ const MonitorListPanel = styled(Panel)`
     transition: background 50ms ease-in-out;
   }
 
+  a:nth-child(odd),
+  a + div:nth-child(even),
+  a + div + div:nth-child(odd) {
+    background: ${p => p.theme.backgroundSecondary};
+  }
+
   /* Highlights row when hovering <a> */
   a:hover,
   a:hover + div,
@@ -183,15 +189,14 @@ const MonitorListPanel = styled(Panel)`
   a:has(+ div + div:hover),
   a + div:has(+ div:hover),
   a + div + div:hover {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.backgroundTertiary};
   }
 `;
 
 const DetailsContainer = styled(Link)`
   color: ${p => p.theme.textColor};
-  padding: ${space(2)};
+  padding: ${space(3)};
   border-right: 1px solid ${p => p.theme.border};
-  border-bottom: 1px solid ${p => p.theme.border};
   border-radius: 0;
 `;
 
@@ -222,10 +227,9 @@ const TimelineWidthTracker = styled('div')`
 
 const MonitorEnvContainer = styled('div')`
   display: flex;
-  padding: ${space(2)};
+  padding: ${space(3)} ${space(2)};
   flex-direction: column;
   gap: ${space(4)};
-  border-bottom: 1px solid ${p => p.theme.border};
   border-right: 1px solid ${p => p.theme.innerBorder};
   text-align: right;
   line-height: 14px;
@@ -238,9 +242,8 @@ const MonitorEnvLabel = styled('div')`
 `;
 
 const TimelineContainer = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
   display: flex;
-  padding: ${space(2)} 0;
+  padding: ${space(3)} 0;
   flex-direction: column;
   gap: ${space(4)};
 `;
