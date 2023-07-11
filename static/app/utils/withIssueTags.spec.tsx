@@ -62,7 +62,9 @@ describe('withIssueTags HoC', function () {
       ]);
     });
 
-    expect(screen.getByText(/assigned: me, \[me, none\]/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/assigned: me, my_teams, \[me, my_teams, none\]/)
+    ).toBeInTheDocument();
 
     act(() => {
       TeamStore.loadInitialData([
@@ -76,7 +78,7 @@ describe('withIssueTags HoC', function () {
 
     expect(
       screen.getByText(
-        /assigned: me, \[me, none\], foo@example.com, joe@example.com, #best-team-na/
+        /assigned: me, my_teams, \[me, my_teams, none\], foo@example.com, joe@example.com, #best-team-na/
       )
     ).toBeInTheDocument();
 
