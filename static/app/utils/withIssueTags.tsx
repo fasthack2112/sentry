@@ -44,53 +44,46 @@ function withIssueTags<Props extends WithIssueTagsProps>(
       teams: TeamStore.getAll(),
     });
 
-    const setAssigned = useCallback(
-      (newState: Partial<WrappedComponentState>) => {
-        setState(oldState => {
-          const usernames: string[] = newState.users
-            ? newState.users.map(getUsername)
-            : oldState.users.map(getUsername);
+    const setAssigned = useCallback((newState: Partial<WrappedComponentState>) => {
+      setState(oldState => {
+        const usernames: string[] = newState.users
+          ? newState.users.map(getUsername)
+          : oldState.users.map(getUsername);
 
-          const teamnames: string[] = (newState.teams ? newState.teams : oldState.teams)
-            .filter(team => team.isMember)
-            .map(team => `#${team.slug}`);
+        const teamnames: string[] = (newState.teams ? newState.teams : oldState.teams)
+          .filter(team => team.isMember)
+          .map(team => `#${team.slug}`);
 
-          const allAssigned = props.organization.features.includes('assign-to-me')
-            ? ['[me, my_teams, none]', ...usernames, ...teamnames]
-            : ['[me, none]', ...usernames, ...teamnames];
+        const allAssigned = ['[me, my_teams, none]', ...usernames, ...teamnames];
 
-          if (props.organization.features.includes('assign-to-me')) {
-            allAssigned.unshift('my_teams');
-          }
-          allAssigned.unshift('me');
-          usernames.unshift('me');
+        allAssigned.unshift('my_teams');
+        allAssigned.unshift('me');
+        usernames.unshift('me');
 
-          return {
-            ...oldState,
-            ...newState,
-            tags: {
-              ...oldState.tags,
-              ...newState.tags,
-              assigned: {
-                ...(newState.tags?.assigned ?? oldState.tags?.assigned ?? {}),
-                values: allAssigned,
-              },
-              bookmarks: {
-                ...(newState.tags?.bookmarks ?? oldState.tags?.bookmarks ?? {}),
-                values: usernames,
-              },
-              assigned_or_suggested: {
-                ...(newState.tags?.assigned_or_suggested ??
-                  oldState.tags.assigned_or_suggested ??
-                  {}),
-                values: allAssigned,
-              },
+        return {
+          ...oldState,
+          ...newState,
+          tags: {
+            ...oldState.tags,
+            ...newState.tags,
+            assigned: {
+              ...(newState.tags?.assigned ?? oldState.tags?.assigned ?? {}),
+              values: allAssigned,
             },
-          };
-        });
-      },
-      [props.organization]
-    );
+            bookmarks: {
+              ...(newState.tags?.bookmarks ?? oldState.tags?.bookmarks ?? {}),
+              values: usernames,
+            },
+            assigned_or_suggested: {
+              ...(newState.tags?.assigned_or_suggested ??
+                oldState.tags.assigned_or_suggested ??
+                {}),
+              values: allAssigned,
+            },
+          },
+        };
+      });
+    }, []);
 
     // Listen to team store updates and cleanup listener on unmount
     useEffect(() => {
