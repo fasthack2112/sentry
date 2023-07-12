@@ -26,6 +26,7 @@ from sentry.models import (
     PullRequest,
     Repository,
 )
+from sentry.plugins.base import bindings
 from sentry.services.hybrid_cloud.identity.service import identity_service
 from sentry.services.hybrid_cloud.integration.model import (
     RpcIntegration,
@@ -96,6 +97,24 @@ class Webhook:
                 provider=f"integrations:{self.provider}",
                 external_id=str(event["repository"]["id"]),
             )
+
+            if not repos.exists():
+                binding_key = "integration-repository.provider"
+                provider_key = "integrations:" + integration.provider
+                provider_cls = bindings.get(binding_key).get(provider_key)
+                provider = provider_cls(id=provider_key)
+
+                config = {
+                    "integration_id": integration.id,
+                    "external_id": str(event["repository"]["id"]),
+                    "identifier": event.get("repository", {}).get("full_name", None),
+                }
+
+                for org in list(orgs.values()):
+                    provider.create_repository(config, org)
+
+                repos = Repository.objects.filter(external_id=config["external_id"])
+
             for repo in repos:
                 self._handle(integration, event, orgs[repo.organization_id], repo)
 
