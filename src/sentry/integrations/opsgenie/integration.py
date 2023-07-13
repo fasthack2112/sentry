@@ -116,7 +116,37 @@ class InstallationGuideView(PipelineView):
 
 
 class OpsgenieIntegration(IntegrationInstallation):
-    pass
+    def get_organization_config(self) -> Sequence[Any]:
+        fields = [
+            {
+                "name": "team_table",
+                "type": "table",
+                "label": "Opsgenie teams with the Sentry integration enabled",
+                "help": "If teams need to be updated, deleted, or added manually please do so here. Alert rules will need to be individually updated for any additions or deletions of teams.",
+                "addButtonText": "",
+                "columnLabels": {"team": "Team", "integration_key": "Integration Key"},
+                "columnKeys": ["team", "integration_key"],
+                "confirmDeleteMessage": "Any alert rules associated with this team will stop working. The rules will still exist but will show a `removed` team.",
+            }
+        ]
+
+        return fields
+
+    def update_organization_config(self, data):
+        pass
+
+    def get_config_data(self):
+        team_list = []
+        for t in self.teams:
+            team_list.append(
+                {"service": t.team_name, "integration_key": t.integration_key, "id": t.id}
+            )
+        return {"service_table": team_list}
+
+    @property
+    def teams(self):
+        # TODO
+        pass
 
 
 class OpsgenieIntegrationProvider(IntegrationProvider):
