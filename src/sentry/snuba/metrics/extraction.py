@@ -257,7 +257,7 @@ class OndemandMetricSpec:
 
         # On-demand metrics are implicitly transaction metrics. Remove the
         # filter from the query since it can't be translated to a RuleCondition.
-        self._query = re.sub(r"event\.type:transaction\s*", "", query).strip()
+        self._query = re.sub(r"event\.type:transaction\s*", "", query)
 
         relay_field, metric_type, op = _extract_field_info(field)
         self.field = relay_field
