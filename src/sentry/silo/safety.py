@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import contextlib
 import re
-import sys
 from collections import defaultdict
 from typing import Any, MutableMapping, Optional
 
 from django.db.transaction import get_connection
 
 from sentry.silo.patches.silo_aware_transaction_patch import determine_using_by_silo_mode
+from sentry.utils.env import in_test_environment
 
 _fence_re = re.compile(r"select\s*\'(?P<operation>start|end)_role_override", re.IGNORECASE)
 _fencing_counters: MutableMapping[str, int] = defaultdict(int)
@@ -33,7 +33,7 @@ def unguarded_write(using: str | None = None, *args: Any, **kwargs: Any):
     This code can't be co-located with the auditing logic because
     the testutils module cannot be used in production code.
     """
-    if "pytest" not in sys.argv[0]:
+    if not in_test_environment():
         yield
         return
 
