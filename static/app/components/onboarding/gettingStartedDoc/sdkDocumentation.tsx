@@ -24,6 +24,7 @@ export const migratedDocs = [
   'php-laravel',
   'go',
   'rust',
+  'node',
 ];
 
 type SdkDocumentationProps = {
