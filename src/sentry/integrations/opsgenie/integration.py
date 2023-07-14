@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, MutableMapping, Sequence
 
 from django import forms
 from django.http import HttpResponse
@@ -136,21 +136,11 @@ class OpsgenieIntegration(IntegrationInstallation):
 
         return fields
 
-    def update_organization_config(self, data):
-        pass
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        return super().update_organization_config(data)
 
-    def get_config_data(self):
-        team_list = []
-        for t in self.teams:
-            team_list.append(
-                {"service": t.team_name, "integration_key": t.integration_key, "id": t.id}
-            )
-        return {"service_table": team_list}
-
-    @property
-    def teams(self):
-        # TODO
-        pass
+    def get_config_data(self) -> Mapping[str, str]:
+        return super().get_config_data()
 
 
 class OpsgenieIntegrationProvider(IntegrationProvider):
