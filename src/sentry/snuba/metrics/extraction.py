@@ -257,7 +257,7 @@ class OndemandMetricSpec:
 
         # On-demand metrics are implicitly transaction metrics. Remove the
         # filter from the query since it can't be translated to a RuleCondition.
-        self._query = re.sub(r"event\.type:transaction\s*", "", query)
+        self._query = re.sub(r"event\.type:transaction\s*", "", query).strip()
 
         relay_field, metric_type, op = _extract_field_info(field)
         self.field = relay_field
@@ -269,7 +269,8 @@ class OndemandMetricSpec:
         """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
 
         # TODO: Figure out how to support multiple fields and different but equivalent queries
-        str_to_hash = f"{self.field};{self._query}"
+        # TODO: find a better way to sanitize _query, or use the already parsed query, stringify and hash it instead
+        str_to_hash = f"{self.field};{self._query.strip()}"
         return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
 
     def condition(self) -> RuleCondition:
